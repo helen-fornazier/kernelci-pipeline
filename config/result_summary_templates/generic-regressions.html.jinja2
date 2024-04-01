@@ -113,6 +113,9 @@ expects the following input parameters:
                     {% for log in regression['logs'] -%}
                       <li>
                         <a href="{{ regression['logs'][log]['url'] }}">{{ log }}</a>
+                        {% if regression['logs'][log]['category'] %}
+                          ({{ regression['logs'][log]['category']['tag'] }}: {{ regression['logs'][log]['category']['name'] }})
+                        {% endif %}
                         <div class="collapse" id="logSnippet">
                           <div class="card card-body">
                             <pre>

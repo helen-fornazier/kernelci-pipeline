@@ -43,6 +43,7 @@ from datetime import datetime, timedelta, timezone
 import gzip
 import logging
 import os
+import re
 import shutil
 
 import jinja2
@@ -53,12 +54,16 @@ import yaml
 import kernelci
 import kernelci.api.models as models
 from kernelci.legacy.cli import Args, Command, parse_opts
+from typing import Any, Dict, List
 from base import Service
 
 SERVICE_NAME = 'result_summary'
 TEMPLATES_DIR = './config/result_summary_templates/'
 OUTPUT_DIR = '/home/kernelci/data/output/'
+CONFIG_TRACES_FILE_PATH = './config/traces_config.yaml'
 
+with open(CONFIG_TRACES_FILE_PATH) as f:
+    traces_config: Dict[str, Any] = yaml.load(f, Loader=yaml.FullLoader)
 
 class ResultSummary(Service):
     def __init__(self, configs, args):
@@ -158,6 +163,14 @@ class ResultSummary(Service):
             params.extend(self._parse_block_config(body, block_name, 'done'))
         return metadata, params
 
+    def _get_err_category(self, trace: str) -> Dict[str, Any]:
+        # sourcery skip: raise-specific-error
+        for category in traces_config["categories"]:
+            p = "|".join(category["patterns"])
+            if re.findall(p, trace or ""):
+                return category
+        raise Exception(f"No category found, check {CONFIG_TRACES_FILE_PATH}")
+
     def _get_log(self, url, snippet_lines=0):
         """Fetches a text log given its url.
 
@@ -216,8 +229,9 @@ class ResultSummary(Service):
                         if item == 'log' or item.endswith('_log')}
             for log_name, url in all_logs.items():
                 text = self._get_log(url, snippet_lines=-10)
+                category = self._get_err_category(text)
                 if text:
-                    logs[log_name] = {'url': url, 'text': text}
+                    logs[log_name] = {'url': url, 'text': text, 'category': category}
         node['logs'] = logs
 
     def _iterate_node_find(self, params):

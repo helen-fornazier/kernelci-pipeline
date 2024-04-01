@@ -88,6 +88,9 @@ expects the following input parameters:
                     {% for log in test['logs'] -%}
                       <li>
                         <a href="{{ test['logs'][log]['url'] }}">{{ log }}</a>
+                        {% if test['logs'][log]['category'] %}
+                          ({{ test['logs'][log]['category']['tag'] }}: {{ test['logs'][log]['category']['name'] }})
+                        {% endif %}
                         <div class="collapse" id="logSnippet">
                           <div class="card card-body">
                             <pre>
